@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <project default="postbuild" name="test">
-  <property name="project.name" value="filter"/>
+  <property name="project.name" value="CortexFilter"/>
   <property name="project.debug" value="Debug"/>
   <property name="project.obj" value="Debug/obj"/>
   <property name="project.bin" value="Debug/bin"/>
@@ -25,7 +25,7 @@
       <arg value="${project.name}.elf"/>
     </exec>
   </target>
-
+  
   <taskdef resource="cpptasks.tasks"/>
   <target name="compile">
     <mkdir dir="${project.bin}"/>
@@ -42,6 +42,7 @@
       
       <!-- defines -->
       <defineset>
+        <define name="ARM_MATH_CM3"/>
         <define name="LPC1769"/>
       </defineset>
       
@@ -51,24 +52,25 @@
       <includepath path="lpc17xx_lib"/>
       <includepath path="lpc17xx_lib/include"/>
       <includepath path="cmsis_boot"/>
+      <includepath path="inc"/>
       
       <!-- arm-none-eabi-gcc compiler arguments -->
       <compilerarg value="-mcpu=cortex-m3"/>
       <compilerarg value="-mthumb"/>
       <compilerarg value="-Wall"/>      
       <compilerarg value="-ffunction-sections"/>
-      <compilerarg value="-O0"/>
+      <compilerarg value="-O2"/>
       <compilerarg value="-g"/>
       
       <!-- arm-none-eabi-gcc linker arguments -->
-      <linkerarg value="-O0"/>
+      <linkerarg value="-O2"/>
       <linkerarg value="-nostartfiles"/>
       <linkerarg value="-Map=${project.name}.map"/>
       <linkerarg value="-mcpu=cortex-m3"/>
       <linkerarg value="-mthumb"/>
       <linkerarg value="-L${linkdir}"/>
       <linkerarg value="--gc-sections"/>
-      <linkerarg value="-TC:\Users\Willem Melching\Dropbox\EE\EPO-1\Beukende bas\Digitaal filter\Firmware\filter\arm-gcc-link.ld"/>
+      <linkerarg value="-TC:\Users\Willem\Documents\GitHub\CortexFilter\arm-gcc-link.ld"/>
       
     </cc>
   </target>
