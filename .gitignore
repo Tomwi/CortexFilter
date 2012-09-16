@@ -17,6 +17,7 @@ local.properties
 *.elf
 *.hex
 *.map
+*.bin
 dependencies.xml
 history.xml
 
