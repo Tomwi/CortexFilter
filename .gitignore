@@ -20,6 +20,9 @@ local.properties
 *.bin
 dependencies.xml
 history.xml
+debug.xml
+*.ld
+build.xml
 
 # External tool builders
 .externalToolBuilders/
