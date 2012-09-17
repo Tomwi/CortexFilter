@@ -18,11 +18,10 @@ local.properties
 *.hex
 *.map
 *.bin
-dependencies.xml
-history.xml
-debug.xml
+*.xml
+debug.config
 *.ld
-build.xml
+.CortexFilter.elf.xcodeproj/
 
 # External tool builders
 .externalToolBuilders/
