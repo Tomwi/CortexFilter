@@ -28,7 +28,7 @@
   
   <target depends="postbuild" name="afterbuild">
     <exec executable="cmd">
-      <arg line="/C &quot;C:\Users\Willem\Documents\GitHub\CortexFilter\flash.bat&quot;"/>
+      <arg line="/C &quot;flash.bat&quot;"/>
     </exec>
   </target>
   
@@ -75,7 +75,7 @@
       <linkerarg value="-mthumb"/>
       <linkerarg value="-L${linkdir}"/>
       <linkerarg value="--gc-sections"/>
-      <linkerarg value="-TC:\Users\Willem\Documents\GitHub\CortexFilter\arm-gcc-link.ld"/>
+      <linkerarg value="-TC:\Users\Willem Melching\Documents\GitHub\CortexFilter\arm-gcc-link.ld"/>
       
     </cc>
   </target>
