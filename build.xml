@@ -28,7 +28,7 @@
   
   <target depends="postbuild" name="afterbuild">
     <exec executable="cmd">
-      <arg line="/C &quot;flash.bat&quot;"/>
+      <arg line="/C &quot;C:\Users\Willem Melching\Documents\GitHub\CortexFilter\flash.bat&quot;"/>
     </exec>
   </target>
   
@@ -53,11 +53,10 @@
       
       <!-- include compile path -->
       <includepath path="."/>
-      <includepath path="cmsis"/>
-      <includepath path="lpc17xx_lib"/>
-      <includepath path="lpc17xx_lib/include"/>
-      <includepath path="cmsis_boot"/>
       <includepath path="inc"/>
+      <includepath path="lpc17xx_lib/include"/>
+      <includepath path="cmsis"/>
+      <includepath path="cmsis_boot"/>
       
       <!-- arm-none-eabi-gcc compiler arguments -->
       <compilerarg value="-mcpu=cortex-m3"/>
