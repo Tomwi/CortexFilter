@@ -1,6 +1,5 @@
 #include "i2s.h"
-#include "lpc17xx_i2s.h"
-#include "lpc17xx_pinsel.h"
+
 
 I2S_CFG_Type I2S_TransConf = {
 	I2S_WORDWIDTH_16,

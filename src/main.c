@@ -46,6 +46,10 @@ int main() {
 		delay_ms(500);
 		GPIO_SetValue(0, LED_PINS);
 		TransmitValue((val)|(val<<16));
+
+		term1PutValue(val,FALSE);
+		term1PutValue(val<<16,TRUE);
+
 	}
 
 }
