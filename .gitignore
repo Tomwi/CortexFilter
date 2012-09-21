@@ -21,7 +21,8 @@ local.properties
 *.xml
 debug.config
 *.ld
-.CortexFilter.elf.xcodeproj/
+CortexFilter.elf.xcodeproj
+debug.config
 
 # External tool builders
 .externalToolBuilders/
