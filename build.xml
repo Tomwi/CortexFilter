@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<project default="postbuild" name="test">
+<project default="afterbuild" name="test">
   <property name="project.name" value="CortexFilter"/>
   <property name="project.debug" value="Debug"/>
   <property name="project.obj" value="Debug/obj"/>
@@ -23,6 +23,12 @@
     </exec>
   </target>
   
+  <target depends="postbuild" name="afterbuild">
+    <exec executable="cmd">
+      <arg line="/C &quot;flash.bat&quot;"/>
+    </exec>
+  </target>
+  
   <taskdef resource="cpptasks.tasks"/>
   <target name="compile">
     <mkdir dir="${project.bin}"/>
@@ -30,7 +36,7 @@
     <cc debug="true" objdir="${project.obj}" outfile="${project.bin}/${project.name}.elf" outtype="executable" subsystem="console">
       <!-- compile all the c source file in the project -->
       
-      <fileset casesensitive="false" dir=".">
+      <fileset dir=".">
         <include name="**/*.c"/>
         <include name="**/*.cpp"/>
         <include name="**/*.s"/>
@@ -65,7 +71,7 @@
       <linkerarg value="-mthumb"/>
       <linkerarg value="-L${linkdir}"/>
       <linkerarg value="--gc-sections"/>
-      <linkerarg value="-T${linkdir}/link.ld"/>
+      <linkerarg value="-TC:\Users\Willem Melching\Documents\GitHub\CortexFilter\arm-gcc-link.ld"/>
       
     </cc>
   </target>
@@ -78,7 +84,7 @@
   </target>
   
   <target depends="clean" name="rebuild">
-    <antcall target="postbuild"/>
+    <antcall target="afterbuild"/>
   </target>
 
 </project>

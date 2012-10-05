@@ -2,6 +2,6 @@
 <UserRuns>
   <Run isBefore="1" isSelected="0" value=""/>
   <Run isBefore="1" isSelected="0" value=""/>
-  <Run isBefore="0" isSelected="0" value="&quot;C:\Users\Willem\Documents\GitHub\CortexFilter\flash.bat&quot;"/>
+  <Run isBefore="0" isSelected="1" value="&quot;flash.bat&quot;"/>
   <Run isBefore="0" isSelected="0" value=""/>
 </UserRuns>

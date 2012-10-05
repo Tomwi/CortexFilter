@@ -15,8 +15,12 @@ volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
 volatile uint32_t txdata = 0;
 volatile uint32_t txblock[4];
+volatile uint32_t destblock[4] = { 99, 99, 99, 99 };
+
 volatile int ledvalue = 0;
 unsigned long LED_PINS = ((uint32_t) 1 << 22);
+
+void DMA_IRQHandler(void);
 
 void SysTick_Handler(void) {
 	SysTickCount++; // increment the SysTick counter
@@ -32,7 +36,7 @@ void SysTick_Handler(void) {
 		}
 		txblock[0] = txblock[1] = txblock[2] = txblock[3] = txdata;
 
-		term1PutValue(txdata, TRUE);
+		term1PutValue(destblock[3], TRUE);
 
 		if (ledvalue) {
 			GPIO_SetValue(0, LED_PINS);
@@ -41,7 +45,6 @@ void SysTick_Handler(void) {
 			GPIO_ClearValue(0, LED_PINS);
 			ledvalue = 1;
 		}
-
 	}
 }
 
@@ -53,16 +56,15 @@ inline static void delay_ms(uint32_t delayTime) {
 		;
 }
 
-void DMA_IRQHandler(void)
-{
-	if(GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET)
-	{
-		if(GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET)
-		{
+void DMA_IRQHandler(void) {
+	term1PutText("DMA\r\n");
+	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET) {
+		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET) {
+			//Channel0_TC++;
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 0);
 		}
-		if(GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 0) == SET)
-		{
+		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 0) == SET) {
+			//Channel0_Err++;
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 0);
 		}
 	}
@@ -73,6 +75,8 @@ int main() {
 	SystemInit();
 	SystemCoreClockUpdate();
 
+	txblock[0] = txblock[1] = txblock[2] = txblock[3] = 0;
+
 	SysTick_Config(SystemCoreClock / 1000);
 
 	/* Enable GPIO Clock */
@@ -80,7 +84,7 @@ int main() {
 	GPIO_SetDir(0, LED_PINS, 1);
 
 	uart1Init();
-	initTX(44100);
+
 
 	GPDMA_Channel_CFG_Type GPDMACfg;
 
@@ -99,13 +103,13 @@ int main() {
 	/* Source memory */
 	GPDMACfg.SrcMemAddr = (uint32_t) txblock;
 	/* Destination memory */
-	GPDMACfg.DstMemAddr = 0;
+	GPDMACfg.DstMemAddr = (uint32_t) destblock;
 	/* Transfer size */
 	GPDMACfg.TransferSize = 4;
 	/* Transfer width */
 	GPDMACfg.TransferWidth = GPDMA_WIDTH_WORD;
 	/* Transfer type */
-	GPDMACfg.TransferType = GPDMA_TRANSFERTYPE_M2P;
+	GPDMACfg.TransferType = GPDMA_TRANSFERTYPE_M2M;
 	/* Source connection - unused */
 	GPDMACfg.SrcConn = 0;
 	/* Destination connection - I2S */
@@ -114,15 +118,19 @@ int main() {
 	GPDMACfg.DMALLI = 0;
 	/* Setup channel with given parameter */
 	GPDMA_Setup(&GPDMACfg);
+
 	/* Enable GPDMA channel 0 */
 	GPDMA_ChannelCmd(0, ENABLE);
 	/* Enable GPDMA interrupt */
 	NVIC_EnableIRQ(DMA_IRQn);
 
+
+	initTX(44100);
+
+	term1PutText("Booted\n\r");
 	while (1) {
 		//TransmitValue((txdata)|(txdata<<16));
 		;
-
 	}
 
 }
