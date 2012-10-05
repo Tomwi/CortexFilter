@@ -21,6 +21,7 @@ volatile int ledvalue = 0;
 unsigned long LED_PINS = ((uint32_t) 1 << 22);
 
 void DMA_IRQHandler(void);
+void runDMA(void);
 
 void SysTick_Handler(void) {
 	SysTickCount++; // increment the SysTick counter
@@ -45,6 +46,8 @@ void SysTick_Handler(void) {
 			GPIO_ClearValue(0, LED_PINS);
 			ledvalue = 1;
 		}
+
+		runDMA();
 	}
 }
 
@@ -70,6 +73,36 @@ void DMA_IRQHandler(void) {
 	}
 }
 
+void runDMA(void) {
+	GPDMA_Channel_CFG_Type GPDMACfg;
+
+	/* Setup GPDMA channel --------------------------------*/
+	/* channel 0 */
+	GPDMACfg.ChannelNum = 0;
+	/* Source memory */
+	GPDMACfg.SrcMemAddr = (uint32_t) txblock;
+	/* Destination memory */
+	GPDMACfg.DstMemAddr = (uint32_t) destblock;
+	/* Transfer size */
+	GPDMACfg.TransferSize = 4;
+	/* Transfer width */
+	GPDMACfg.TransferWidth = GPDMA_WIDTH_WORD;
+	/* Transfer type */
+	GPDMACfg.TransferType = GPDMA_TRANSFERTYPE_M2P;
+	/* Source connection - unused */
+	GPDMACfg.SrcConn = 0;
+	/* Destination connection - I2S */
+	GPDMACfg.DstConn = GPDMA_CONN_I2S_Channel_0;
+	/* Linker List Item - unused */
+	GPDMACfg.DMALLI = 0;
+	/* Setup channel with given parameter */
+	GPDMA_Setup(&GPDMACfg);
+
+	/* Enable GPDMA channel 0 */
+	GPDMA_ChannelCmd(0, ENABLE);
+
+}
+
 int main() {
 
 	SystemInit();
@@ -85,9 +118,6 @@ int main() {
 
 	uart1Init();
 
-
-	GPDMA_Channel_CFG_Type GPDMACfg;
-
 	/* GPDMA block section -------------------------------------------- */
 	/* Disable GPDMA interrupt */
 	NVIC_DisableIRQ(DMA_IRQn);
@@ -97,33 +127,8 @@ int main() {
 	/* Initialize GPDMA controller */
 	GPDMA_Init();
 
-	/* Setup GPDMA channel --------------------------------*/
-	/* channel 0 */
-	GPDMACfg.ChannelNum = 0;
-	/* Source memory */
-	GPDMACfg.SrcMemAddr = (uint32_t) txblock;
-	/* Destination memory */
-	GPDMACfg.DstMemAddr = (uint32_t) destblock;
-	/* Transfer size */
-	GPDMACfg.TransferSize = 4;
-	/* Transfer width */
-	GPDMACfg.TransferWidth = GPDMA_WIDTH_WORD;
-	/* Transfer type */
-	GPDMACfg.TransferType = GPDMA_TRANSFERTYPE_M2M;
-	/* Source connection - unused */
-	GPDMACfg.SrcConn = 0;
-	/* Destination connection - I2S */
-	GPDMACfg.DstConn = GPDMA_CONN_I2S_Channel_0;
-	/* Linker List Item - unused */
-	GPDMACfg.DMALLI = 0;
-	/* Setup channel with given parameter */
-	GPDMA_Setup(&GPDMACfg);
-
-	/* Enable GPDMA channel 0 */
-	GPDMA_ChannelCmd(0, ENABLE);
 	/* Enable GPDMA interrupt */
 	NVIC_EnableIRQ(DMA_IRQn);
-
 
 	initTX(44100);
 
