@@ -47,7 +47,6 @@ void SysTick_Handler(void) {
 			ledvalue = 1;
 		}
 
-		runDMA();
 	}
 }
 
@@ -73,7 +72,32 @@ void DMA_IRQHandler(void) {
 	}
 }
 
-void runDMA(void) {
+
+
+int main() {
+
+	SystemInit();
+	SystemCoreClockUpdate();
+
+	txblock[0] = txblock[1] = txblock[2] = txblock[3] = 123;
+
+	SysTick_Config(SystemCoreClock / 1000);
+
+	/* Enable GPIO Clock */
+	CLKPWR_ConfigPPWR(CLKPWR_PCONP_PCGPIO, ENABLE);
+	GPIO_SetDir(0, LED_PINS, 1);
+
+	uart1Init();
+
+	/* GPDMA block section -------------------------------------------- */
+	/* Disable GPDMA interrupt */
+	NVIC_DisableIRQ(DMA_IRQn);
+	/* preemption = 1, sub-priority = 1 */
+	NVIC_SetPriority(DMA_IRQn, ((0x01 << 3) | 0x01));
+
+	/* Initialize GPDMA controller */
+	GPDMA_Init();
+
 	GPDMA_Channel_CFG_Type GPDMACfg;
 
 	/* Setup GPDMA channel --------------------------------*/
@@ -100,33 +124,6 @@ void runDMA(void) {
 
 	/* Enable GPDMA channel 0 */
 	GPDMA_ChannelCmd(0, ENABLE);
-
-}
-
-int main() {
-
-	SystemInit();
-	SystemCoreClockUpdate();
-
-	txblock[0] = txblock[1] = txblock[2] = txblock[3] = 0;
-
-	SysTick_Config(SystemCoreClock / 1000);
-
-	/* Enable GPIO Clock */
-	CLKPWR_ConfigPPWR(CLKPWR_PCONP_PCGPIO, ENABLE);
-	GPIO_SetDir(0, LED_PINS, 1);
-
-	uart1Init();
-
-	/* GPDMA block section -------------------------------------------- */
-	/* Disable GPDMA interrupt */
-	NVIC_DisableIRQ(DMA_IRQn);
-	/* preemption = 1, sub-priority = 1 */
-	NVIC_SetPriority(DMA_IRQn, ((0x01 << 3) | 0x01));
-
-	/* Initialize GPDMA controller */
-	GPDMA_Init();
-
 	/* Enable GPDMA interrupt */
 	NVIC_EnableIRQ(DMA_IRQn);
 

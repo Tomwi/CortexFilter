@@ -61,12 +61,11 @@ void initTX(unsigned int freq) {
 	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_TX_MODE);
 	//I2S_IRQConfig(LPC_I2S,I2S_TX_MODE,8);
 
-
-
 	I2S_DMAConf_Type I2SDMACfg;
 	I2SDMACfg.DMAIndex = I2S_DMA_1;
 	I2SDMACfg.depth = 4;
 	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
+
 	I2S_Start(LPC_I2S);
 
 	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
