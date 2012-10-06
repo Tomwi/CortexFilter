@@ -71,7 +71,7 @@
       <linkerarg value="-mthumb"/>
       <linkerarg value="-L${linkdir}"/>
       <linkerarg value="--gc-sections"/>
-      <linkerarg value="-TC:\Users\Willem Melching\Documents\GitHub\CortexFilter\arm-gcc-link.ld"/>
+      <linkerarg value="-TC:\Users\Tom\Documents\GitHub\CortexFilter\link.ld"/>
       
     </cc>
   </target>
