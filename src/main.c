@@ -11,17 +11,23 @@
 #include "terminal.h"
 #include "i2s.h"
 
+
+
 volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
 volatile uint32_t txdata = 0;
 volatile uint32_t txblock[4];
 volatile uint32_t destblock[4] = { 99, 99, 99, 99 };
 
+// Terminal Counter flag for Channel 0
+volatile uint32_t Channel0_TC = 0;
+// Error Counter flag for Channel 0
+volatile uint32_t Channel0_Err = 0;
+
 volatile int ledvalue = 0;
 unsigned long LED_PINS = ((uint32_t) 1 << 22);
 
 void DMA_IRQHandler(void);
-void runDMA(void);
 
 void SysTick_Handler(void) {
 	SysTickCount++; // increment the SysTick counter
@@ -62,11 +68,11 @@ void DMA_IRQHandler(void) {
 	term1PutText("DMA\r\n");
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET) {
-			//Channel0_TC++;
+			Channel0_TC++;
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 0);
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 0) == SET) {
-			//Channel0_Err++;
+			Channel0_Err++;
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 0);
 		}
 	}
@@ -89,50 +95,13 @@ int main() {
 
 	uart1Init();
 
-	/* GPDMA block section -------------------------------------------- */
-	/* Disable GPDMA interrupt */
-	NVIC_DisableIRQ(DMA_IRQn);
-	/* preemption = 1, sub-priority = 1 */
-	NVIC_SetPriority(DMA_IRQn, ((0x01 << 3) | 0x01));
 
-	/* Initialize GPDMA controller */
-	GPDMA_Init();
-
-	GPDMA_Channel_CFG_Type GPDMACfg;
-
-	/* Setup GPDMA channel --------------------------------*/
-	/* channel 0 */
-	GPDMACfg.ChannelNum = 0;
-	/* Source memory */
-	GPDMACfg.SrcMemAddr = (uint32_t) txblock;
-	/* Destination memory */
-	GPDMACfg.DstMemAddr = (uint32_t) destblock;
-	/* Transfer size */
-	GPDMACfg.TransferSize = 4;
-	/* Transfer width */
-	GPDMACfg.TransferWidth = GPDMA_WIDTH_WORD;
-	/* Transfer type */
-	GPDMACfg.TransferType = GPDMA_TRANSFERTYPE_M2P;
-	/* Source connection - unused */
-	GPDMACfg.SrcConn = 0;
-	/* Destination connection - I2S */
-	GPDMACfg.DstConn = GPDMA_CONN_I2S_Channel_0;
-	/* Linker List Item - unused */
-	GPDMACfg.DMALLI = 0;
-	/* Setup channel with given parameter */
-	GPDMA_Setup(&GPDMACfg);
-
-	/* Enable GPDMA channel 0 */
-	GPDMA_ChannelCmd(0, ENABLE);
-	/* Enable GPDMA interrupt */
-	NVIC_EnableIRQ(DMA_IRQn);
-
-	initTX(44100);
+	initTX(44100, (uint32_t) txblock, &Channel0_TC, &Channel0_Err);
 
 	term1PutText("Booted\n\r");
 	while (1) {
 		//TransmitValue((txdata)|(txdata<<16));
-		if(I2S_STATE & (I2S_STATE_DMA1|I2S_STATE_DMA2))
+		if(I2S_STATE & (I2S_STATE_DMA1|I2S_STATE_DMA2)){
 			term1PutText("I2S DMA Request occurred\n\r");
 	}
 
