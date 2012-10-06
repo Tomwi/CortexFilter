@@ -132,7 +132,8 @@ int main() {
 	term1PutText("Booted\n\r");
 	while (1) {
 		//TransmitValue((txdata)|(txdata<<16));
-		;
+		if(I2S_STATE & (I2S_STATE_DMA1|I2S_STATE_DMA2))
+			term1PutText("I2S DMA Request occurred\n\r");
 	}
 
 }
