@@ -23,6 +23,8 @@ debug.config
 *.ld
 CortexFilter.elf.xcodeproj
 debug.config
+Debug/bin/CortexFilter.txt
+build.xml
 
 # External tool builders
 .externalToolBuilders/
