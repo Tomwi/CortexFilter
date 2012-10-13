@@ -11,8 +11,6 @@
 #include "terminal.h"
 #include "i2s.h"
 
-
-
 volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
 volatile uint32_t txdata = 0;
@@ -65,7 +63,7 @@ inline static void delay_ms(uint32_t delayTime) {
 }
 
 void DMA_IRQHandler(void) {
-	term1PutText("DMA\r\n");
+
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET) {
 			Channel0_TC++;
@@ -77,8 +75,6 @@ void DMA_IRQHandler(void) {
 		}
 	}
 }
-
-
 
 int main() {
 
@@ -95,14 +91,13 @@ int main() {
 
 	uart1Init();
 
-
 	initTX(44100, (uint32_t) txblock, &Channel0_TC, &Channel0_Err);
 
 	term1PutText("Booted\n\r");
 	while (1) {
 		//TransmitValue((txdata)|(txdata<<16));
-		if(I2S_STATE & (I2S_STATE_DMA1|I2S_STATE_DMA2)){
+		if (I2S_STATE & (I2S_STATE_DMA1 | I2S_STATE_DMA2)) {
 			term1PutText("I2S DMA Request occurred\n\r");
+		}
 	}
-
 }

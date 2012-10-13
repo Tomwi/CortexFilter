@@ -25,7 +25,10 @@ CortexFilter.elf.xcodeproj
 debug.config
 Debug/bin/CortexFilter.txt
 build.xml
-
+CortexFilter.cob
+.xml
+flash.bat
+boot.bat
 # External tool builders
 .externalToolBuilders/
 

@@ -1,7 +1,19 @@
 #include "i2s.h"
 
+
+#define TRANSFER_SIZE (1024)
+
+int buffer[TRANSFER_SIZE];
+
+
+void prepareBuffer(int* buffer){
+	buffer[TRANSFER_SIZE-1] = ((1024 << 16) | 1024);
+}
+
+
 void initTX(unsigned int freq, uint32_t txblock, volatile uint32_t * TC, volatile uint32_t * Err) {
 
+	prepareBuffer(buffer);
 	PINSEL_CFG_Type PinCfg;
 	I2S_CFG_Type I2S_ConfigStruct;
 	I2S_DMAConf_Type I2SDMACfg;
@@ -71,7 +83,7 @@ void initTX(unsigned int freq, uint32_t txblock, volatile uint32_t * TC, volatil
 	/* Destination memory */
 	GPDMACfg.DstMemAddr = 0;
 	/* Transfer size */
-	GPDMACfg.TransferSize = 4;
+	GPDMACfg.TransferSize = TRANSFER_SIZE;
 	/* Transfer width */
 	GPDMACfg.TransferWidth = 0;
 	/* Transfer type */
