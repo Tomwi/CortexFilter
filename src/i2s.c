@@ -1,23 +1,57 @@
 #include "i2s.h"
 
-
-#define TRANSFER_SIZE (1024)
-
-int buffer[TRANSFER_SIZE];
-
-
-void prepareBuffer(int* buffer){
-	buffer[TRANSFER_SIZE-1] = ((1024 << 16) | 1024);
-}
-
-
-void initTX(unsigned int freq, uint32_t txblock, volatile uint32_t * TC, volatile uint32_t * Err) {
-
-	prepareBuffer(buffer);
-	PINSEL_CFG_Type PinCfg;
-	I2S_CFG_Type I2S_ConfigStruct;
+void initI2SDMA(uint32_t txblock) {
 	I2S_DMAConf_Type I2SDMACfg;
 	GPDMA_Channel_CFG_Type GPDMACfg;
+	/* Initialize GPDMA controller */
+	GPDMA_Init();
+	LPC_GPDMA->DMACConfig = 0x01;
+
+	/* Setting GPDMA interrupt */
+	// Disable interrupt for DMA
+	NVIC_DisableIRQ(DMA_IRQn);
+	/* preemption = 1, sub-priority = 1 */
+	NVIC_SetPriority(DMA_IRQn, ((0x01 << 3) | 0x01));
+
+	/* Setup GPDMA channel --------------------------------*/
+	/* channel 0 */
+	GPDMACfg.ChannelNum = 0;
+	/* Source memory */
+	GPDMACfg.SrcMemAddr = txblock;
+	/* Destination memory */
+	GPDMACfg.DstMemAddr = 0;
+	/* Transfer size */
+	GPDMACfg.TransferSize = TRANSFER_SIZE;
+	/* Transfer width */
+	GPDMACfg.TransferWidth = 0;
+	/* Transfer type */
+	GPDMACfg.TransferType = GPDMA_TRANSFERTYPE_M2P;
+	/* Source connection - unused */
+	GPDMACfg.SrcConn = 0;
+	/* Destination connection - I2S */
+	GPDMACfg.DstConn = GPDMA_CONN_I2S_Channel_0;
+	/* Linker List Item - unused */
+	GPDMACfg.DMALLI = 0;
+	/* Setup channel with given parameter */
+	GPDMA_Setup(&GPDMACfg);
+
+	/* Enable GPDMA channel 0 */
+	GPDMA_ChannelCmd(0, ENABLE);
+	/* Enable GPDMA interrupt */
+	NVIC_EnableIRQ(DMA_IRQn);
+
+	I2SDMACfg.DMAIndex = I2S_DMA_1;
+	I2SDMACfg.depth = 4;
+	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
+
+	I2S_Start(LPC_I2S);
+	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
+
+}
+void initTX(unsigned int freq, uint32_t txblock) {
+
+	PINSEL_CFG_Type PinCfg;
+	I2S_CFG_Type I2S_ConfigStruct;
 	I2S_MODEConf_Type I2S_ClkConfig;
 
 	PinCfg.Portnum = PINSEL_PORT_0;
@@ -65,54 +99,7 @@ void initTX(unsigned int freq, uint32_t txblock, volatile uint32_t * TC, volatil
 
 	I2S_FreqConfig(LPC_I2S, freq, I2S_TX_MODE);
 
-	/* Initialize GPDMA controller */
-	GPDMA_Init();
-	LPC_GPDMA->DMACConfig = 0x01;
-
-	/* Setting GPDMA interrupt */
-	// Disable interrupt for DMA
-	NVIC_DisableIRQ(DMA_IRQn);
-	/* preemption = 1, sub-priority = 1 */
-	NVIC_SetPriority(DMA_IRQn, ((0x01 << 3) | 0x01));
-
-	/* Setup GPDMA channel --------------------------------*/
-	/* channel 0 */
-	GPDMACfg.ChannelNum = 0;
-	/* Source memory */
-	GPDMACfg.SrcMemAddr = txblock;
-	/* Destination memory */
-	GPDMACfg.DstMemAddr = 0;
-	/* Transfer size */
-	GPDMACfg.TransferSize = TRANSFER_SIZE;
-	/* Transfer width */
-	GPDMACfg.TransferWidth = 0;
-	/* Transfer type */
-	GPDMACfg.TransferType = GPDMA_TRANSFERTYPE_M2P;
-	/* Source connection - unused */
-	GPDMACfg.SrcConn = 0;
-	/* Destination connection - I2S */
-	GPDMACfg.DstConn = GPDMA_CONN_I2S_Channel_0;
-	/* Linker List Item - unused */
-	GPDMACfg.DMALLI = 0;
-	/* Setup channel with given parameter */
-	GPDMA_Setup(&GPDMACfg);
-
-	/* Reset terminal counter */
-	*TC = 0;
-	/* Reset Error counter */
-	*Err = 0;
-
-	/* Enable GPDMA channel 0 */
-	GPDMA_ChannelCmd(0, ENABLE);
-	/* Enable GPDMA interrupt */
-	NVIC_EnableIRQ(DMA_IRQn);
-
-	I2SDMACfg.DMAIndex = I2S_DMA_1;
-	I2SDMACfg.depth = 4;
-	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
-
-	I2S_Start(LPC_I2S);
-	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
+	initI2SDMA(txblock);
 
 }
 

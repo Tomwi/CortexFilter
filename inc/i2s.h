@@ -6,12 +6,15 @@
 #include "lpc_types.h"
 #include "lpc17xx_gpdma.h"
 
+#define TRANSFER_SIZE (1024)
+
 
 
 #define I2S_STATE (*(volatile uint32_t*)0x400A8010)
 
+void initI2SDMA(uint32_t);
 void initI2S(void);
-void initTX(unsigned int freq, uint32_t txblock, volatile uint32_t * TC, volatile uint32_t * Err);
+void initTX(unsigned int freq, uint32_t txblock);
 void TransmitValue(unsigned int val);
 
 #endif

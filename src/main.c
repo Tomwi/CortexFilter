@@ -13,14 +13,13 @@
 
 volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
-volatile uint32_t txdata = 0;
-volatile uint32_t txblock[4];
-volatile uint32_t destblock[4] = { 99, 99, 99, 99 };
+volatile uint32_t txblock[TRANSFER_SIZE];
+volatile uint16_t i = 0;
 
 // Terminal Counter flag for Channel 0
-volatile uint32_t Channel0_TC = 0;
+//volatile uint32_t Channel0_TC = 0;
 // Error Counter flag for Channel 0
-volatile uint32_t Channel0_Err = 0;
+//volatile uint32_t Channel0_Err = 0;
 
 volatile int ledvalue = 0;
 unsigned long LED_PINS = ((uint32_t) 1 << 22);
@@ -33,15 +32,6 @@ void SysTick_Handler(void) {
 
 	if (miliseconds >= 500) {
 		miliseconds = 0;
-
-		txdata++;
-
-		if (txdata >= 65535) {
-			txdata = 0;
-		}
-		txblock[0] = txblock[1] = txblock[2] = txblock[3] = txdata;
-
-		term1PutValue(destblock[3], TRUE);
 
 		if (ledvalue) {
 			GPIO_SetValue(0, LED_PINS);
@@ -66,14 +56,22 @@ void DMA_IRQHandler(void) {
 
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET) {
-			Channel0_TC++;
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 0);
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 0) == SET) {
-			Channel0_Err++;
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 0);
 		}
 	}
+
+	//txblock init
+	int j;
+	for (j = 0; j < TRANSFER_SIZE; j++) {
+		txblock[j] = ((i << 16) | i);
+		i++;
+	}
+
+	initI2SDMA((uint32_t) txblock);
+
 }
 
 int main() {
@@ -81,7 +79,12 @@ int main() {
 	SystemInit();
 	SystemCoreClockUpdate();
 
-	txblock[0] = txblock[1] = txblock[2] = txblock[3] = 123;
+	//txblock init
+	int j;
+	for (j = 0; j < TRANSFER_SIZE; j++) {
+		txblock[i] = ((i << 16) | i);
+		i++;
+	}
 
 	SysTick_Config(SystemCoreClock / 1000);
 
@@ -91,11 +94,13 @@ int main() {
 
 	uart1Init();
 
-	initTX(44100, (uint32_t) txblock, &Channel0_TC, &Channel0_Err);
+	initTX(44100, (uint32_t) txblock);
 
 	term1PutText("Booted\n\r");
 	while (1) {
-		//TransmitValue((txdata)|(txdata<<16));
+
+		//TransmitValue((123)|((123)<<16));
+
 		if (I2S_STATE & (I2S_STATE_DMA1 | I2S_STATE_DMA2)) {
 			term1PutText("I2S DMA Request occurred\n\r");
 		}
