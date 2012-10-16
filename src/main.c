@@ -63,7 +63,7 @@ void DMA_IRQHandler(void) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 1);
 		}
-		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 1 == SET) {
+		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 1);
 		}
 	}

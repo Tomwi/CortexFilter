@@ -65,19 +65,19 @@ void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
 	/* Enable GPDMA interrupt */
 	NVIC_EnableIRQ(DMA_IRQn);
 
-	I2S_DMAStruct.DMAIndex = I2S_DMA_2;
-	I2S_DMAStruct.depth = 8;
-	I2S_DMAConfig(LPC_I2S, &I2S_DMAStruct, I2S_RX_MODE);
+	I2SDMACfg.DMAIndex = I2S_DMA_2;
+	I2SDMACfg.depth = 8;
+	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_RX_MODE);
 	
-	I2S_DMAStruct.DMAIndex = I2S_DMA_1;
-	I2S_DMAStruct.depth = 4;
-	I2S_DMAConfig(LPC_I2S, &I2S_DMAStruct, I2S_TX_MODE);
+	I2SDMACfg.DMAIndex = I2S_DMA_1;
+	I2SDMACfg.depth = 4;
+	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
 
 	I2S_DMACmd(LPC_I2S, I2S_DMA_2, I2S_RX_MODE, ENABLE);
 	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
 
 }
-void initTX(unsigned int freq, uint32_t txblock, uint32_t txblock) {
+void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 
 	PINSEL_CFG_Type PinCfg;
 	I2S_CFG_Type I2S_ConfigStruct;
