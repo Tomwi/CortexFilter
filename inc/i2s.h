@@ -2,6 +2,7 @@
 #define T_I2S_H
 
 #include "lpc17xx_i2s.h"
+#include "lpc17xx_clkpwr.h"
 #include "lpc17xx_pinsel.h"
 #include "lpc_types.h"
 #include "lpc17xx_gpdma.h"

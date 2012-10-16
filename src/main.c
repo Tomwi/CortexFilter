@@ -99,19 +99,19 @@ int main() {
 
 	/* Enable GPIO Clock */
 	CLKPWR_ConfigPPWR(CLKPWR_PCONP_PCGPIO, ENABLE);
+	CLKPWR_ConfigPPWR(CLKPWR_PCONP_PCI2S, ENABLE);
 	GPIO_SetDir(0, LED_PINS, 1);
 
 	uart1Init();
 
 	initTX(44100, (uint32_t) txblock, (uint32_t) txblock);
 
-	term1PutText("Booted\n\r");
+	term1PutText("Booted, PCLK:\n\r");
+	term1PutValue(CLKPWR_GetPCLK(CLKPWR_PCLKSEL_I2S),1);
+
 	while (1) {
 
 		//TransmitValue((123)|((123)<<16));
 
-		if (I2S_STATE & (I2S_STATE_DMA1 | I2S_STATE_DMA2)) {
-			term1PutText("I2S DMA Request occurred\n\r");
-		}
 	}
 }

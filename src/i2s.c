@@ -49,6 +49,9 @@ void initI2SDMATX(uint32_t txblock) {
 
 	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
 
+
+
+
 }
 
 void initI2SDMARX(uint32_t rxblock) {
@@ -148,6 +151,9 @@ void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 	I2S_ClkConfig.mcena = I2S_MCLK_ENABLE;
 	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_TX_MODE);
 	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_RX_MODE);
+
+	/* set clock */
+	CLKPWR_SetPCLKDiv(CLKPWR_PCLKSEL_I2S, CLKPWR_PCLKSEL_CCLK_DIV_4);
 
 	I2S_FreqConfig(LPC_I2S, freq, I2S_TX_MODE);
 	I2S_FreqConfig(LPC_I2S, freq, I2S_RX_MODE);
