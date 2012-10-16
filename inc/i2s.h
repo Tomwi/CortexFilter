@@ -12,9 +12,9 @@
 
 #define I2S_STATE (*(volatile uint32_t*)0x400A8010)
 
-void initI2SDMA(uint32_t);
+void initI2SDMA(uint32_t, uint32_t);
 void initI2S(void);
-void initTX(unsigned int freq, uint32_t txblock);
-void TransmitValue(unsigned int val);
+void initTX(unsigned int, uint32_t, uint32_t);
+void TransmitValue(unsigned int);
 
 #endif

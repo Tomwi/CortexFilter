@@ -14,12 +14,8 @@
 volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
 volatile uint32_t txblock[TRANSFER_SIZE];
+volatile uint32_t rxblock[TRANSFER_SIZE];
 volatile uint16_t i = 0;
-
-// Terminal Counter flag for Channel 0
-//volatile uint32_t Channel0_TC = 0;
-// Error Counter flag for Channel 0
-//volatile uint32_t Channel0_Err = 0;
 
 volatile int ledvalue = 0;
 unsigned long LED_PINS = ((uint32_t) 1 << 22);
@@ -62,6 +58,15 @@ void DMA_IRQHandler(void) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 0);
 		}
 	}
+	
+	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 1) == SET) {
+		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 1) == SET) {
+			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 1);
+		}
+		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 1 == SET) {
+			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 1);
+		}
+	}
 
 	//txblock init
 	int j;
@@ -70,7 +75,7 @@ void DMA_IRQHandler(void) {
 		i++;
 	}
 
-	initI2SDMA((uint32_t) txblock);
+	initI2SDMA((uint32_t) txblock, (uint32_t) rxblock);
 
 }
 
@@ -94,7 +99,7 @@ int main() {
 
 	uart1Init();
 
-	initTX(44100, (uint32_t) txblock);
+	initTX(44100, (uint32_t) txblock, (uint32_t) txblock);
 
 	term1PutText("Booted\n\r");
 	while (1) {

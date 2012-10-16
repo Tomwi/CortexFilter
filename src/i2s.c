@@ -1,6 +1,6 @@
 #include "i2s.h"
 
-void initI2SDMA(uint32_t txblock) {
+void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
 	I2S_DMAConf_Type I2SDMACfg;
 	GPDMA_Channel_CFG_Type GPDMACfg;
 	/* Initialize GPDMA controller */
@@ -34,21 +34,50 @@ void initI2SDMA(uint32_t txblock) {
 	GPDMACfg.DMALLI = 0;
 	/* Setup channel with given parameter */
 	GPDMA_Setup(&GPDMACfg);
+	
+	// Setup GPDMA channel --------------------------------
+	// channel 1
+	GPDMACfg.ChannelNum = 1;
+	// Source memory - unused
+	GPDMACfg.SrcMemAddr = 0;
+	// Destination memory
+	GPDMACfg.DstMemAddr = rxblock;
+	// Transfer size
+	GPDMACfg.TransferSize = TRANSFER_SIZE;
+	// Transfer width - unused
+	GPDMACfg.TransferWidth = 0;
+	// Transfer type
+	GPDMACfg.TransferType = GPDMA_TRANSFERTYPE_P2M;
+	// Source connection - unused
+	GPDMACfg.SrcConn = GPDMA_CONN_I2S_Channel_1;
+	// Destination connection
+	GPDMACfg.DstConn = 0;
+	// Linker List Item - unused
+	GPDMACfg.DMALLI = 0;
+	/* Setup channel with given parameter */
+	GPDMA_Setup(&GPDMACfg);
+	
+	
 
-	/* Enable GPDMA channel 0 */
+	/* Enable GPDMA channel 0 & 1 */
 	GPDMA_ChannelCmd(0, ENABLE);
+	GPDMA_ChannelCmd(1, ENABLE);
 	/* Enable GPDMA interrupt */
 	NVIC_EnableIRQ(DMA_IRQn);
 
-	I2SDMACfg.DMAIndex = I2S_DMA_1;
-	I2SDMACfg.depth = 4;
-	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
+	I2S_DMAStruct.DMAIndex = I2S_DMA_2;
+	I2S_DMAStruct.depth = 8;
+	I2S_DMAConfig(LPC_I2S, &I2S_DMAStruct, I2S_RX_MODE);
+	
+	I2S_DMAStruct.DMAIndex = I2S_DMA_1;
+	I2S_DMAStruct.depth = 4;
+	I2S_DMAConfig(LPC_I2S, &I2S_DMAStruct, I2S_TX_MODE);
 
-	I2S_Start(LPC_I2S);
+	I2S_DMACmd(LPC_I2S, I2S_DMA_2, I2S_RX_MODE, ENABLE);
 	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
 
 }
-void initTX(unsigned int freq, uint32_t txblock) {
+void initTX(unsigned int freq, uint32_t txblock, uint32_t txblock) {
 
 	PINSEL_CFG_Type PinCfg;
 	I2S_CFG_Type I2S_ConfigStruct;
@@ -91,15 +120,20 @@ void initTX(unsigned int freq, uint32_t txblock) {
 	I2S_ConfigStruct.ws_sel = I2S_MASTER_MODE;
 	I2S_ConfigStruct.mute = I2S_MUTE_DISABLE;
 	I2S_Config(LPC_I2S, I2S_TX_MODE, &I2S_ConfigStruct);
+	I2S_Config(LPC_I2S, I2S_RX_MODE, &I2S_ConfigStruct);
 
 	I2S_ClkConfig.clksel = I2S_CLKSEL_FRDCLK;
 	I2S_ClkConfig.fpin = I2S_4PIN_DISABLE;
 	I2S_ClkConfig.mcena = I2S_MCLK_ENABLE;
 	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_TX_MODE);
+	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_RX_MODE);
 
 	I2S_FreqConfig(LPC_I2S, freq, I2S_TX_MODE);
+	I2S_FreqConfig(LPC_I2S, freq, I2S_RX_MODE);
 
-	initI2SDMA(txblock);
+	initI2SDMA(txblock, rxblock);
+	
+	I2S_Start(LPC_I2S);
 
 }
 
