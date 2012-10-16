@@ -53,6 +53,8 @@ void DMA_IRQHandler(void) {
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 0);
+			
+			initI2SDMATX((uint32_t) txblock);
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 0) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 0);
@@ -62,6 +64,8 @@ void DMA_IRQHandler(void) {
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 1) == SET) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 1);
+			
+			initI2SDMARX((uint32_t) txblock);
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 1);
@@ -75,7 +79,7 @@ void DMA_IRQHandler(void) {
 		i++;
 	}
 
-	initI2SDMA((uint32_t) txblock, (uint32_t) rxblock);
+	
 
 }
 

@@ -1,6 +1,6 @@
 #include "i2s.h"
 
-void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
+void initI2SDMATX(uint32_t txblock) {
 	I2S_DMAConf_Type I2SDMACfg;
 	GPDMA_Channel_CFG_Type GPDMACfg;
 	/* Initialize GPDMA controller */
@@ -35,6 +35,35 @@ void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
 	/* Setup channel with given parameter */
 	GPDMA_Setup(&GPDMACfg);
 	
+	
+
+	/* Enable GPDMA channel 0*/
+	GPDMA_ChannelCmd(0, ENABLE);
+	
+	/* Enable GPDMA interrupt */
+	NVIC_EnableIRQ(DMA_IRQn);
+
+	I2SDMACfg.DMAIndex = I2S_DMA_1;
+	I2SDMACfg.depth = 4;
+	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
+
+	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
+
+}
+
+void initI2SDMARX(uint32_t rxblock) {
+	I2S_DMAConf_Type I2SDMACfg;
+	GPDMA_Channel_CFG_Type GPDMACfg;
+	/* Initialize GPDMA controller */
+	GPDMA_Init();
+	LPC_GPDMA->DMACConfig = 0x01;
+
+	/* Setting GPDMA interrupt */
+	// Disable interrupt for DMA
+	NVIC_DisableIRQ(DMA_IRQn);
+	/* preemption = 1, sub-priority = 1 */
+	NVIC_SetPriority(DMA_IRQn, ((0x01 << 3) | 0x01));
+	
 	// Setup GPDMA channel --------------------------------
 	// channel 1
 	GPDMACfg.ChannelNum = 1;
@@ -57,10 +86,8 @@ void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
 	/* Setup channel with given parameter */
 	GPDMA_Setup(&GPDMACfg);
 	
-	
 
-	/* Enable GPDMA channel 0 & 1 */
-	GPDMA_ChannelCmd(0, ENABLE);
+	/* Enable GPDMA channel 1 */
 	GPDMA_ChannelCmd(1, ENABLE);
 	/* Enable GPDMA interrupt */
 	NVIC_EnableIRQ(DMA_IRQn);
@@ -68,14 +95,8 @@ void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
 	I2SDMACfg.DMAIndex = I2S_DMA_2;
 	I2SDMACfg.depth = 8;
 	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_RX_MODE);
-	
-	I2SDMACfg.DMAIndex = I2S_DMA_1;
-	I2SDMACfg.depth = 4;
-	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
 
 	I2S_DMACmd(LPC_I2S, I2S_DMA_2, I2S_RX_MODE, ENABLE);
-	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
-
 }
 void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 
@@ -131,7 +152,8 @@ void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 	I2S_FreqConfig(LPC_I2S, freq, I2S_TX_MODE);
 	I2S_FreqConfig(LPC_I2S, freq, I2S_RX_MODE);
 
-	initI2SDMA(txblock, rxblock);
+	initI2SDMATX(txblock);
+	initI2SDMARX(rxblock);
 	
 	I2S_Start(LPC_I2S);
 
