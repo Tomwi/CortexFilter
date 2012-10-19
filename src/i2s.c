@@ -34,12 +34,10 @@ void initI2SDMATX(uint32_t txblock) {
 	GPDMACfg.DMALLI = 0;
 	/* Setup channel with given parameter */
 	GPDMA_Setup(&GPDMACfg);
-	
-	
 
 	/* Enable GPDMA channel 0*/
 	GPDMA_ChannelCmd(0, ENABLE);
-	
+
 	/* Enable GPDMA interrupt */
 	NVIC_EnableIRQ(DMA_IRQn);
 
@@ -48,9 +46,6 @@ void initI2SDMATX(uint32_t txblock) {
 	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
 
 	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
-
-
-
 
 }
 
@@ -66,7 +61,7 @@ void initI2SDMARX(uint32_t rxblock) {
 	NVIC_DisableIRQ(DMA_IRQn);
 	/* preemption = 1, sub-priority = 1 */
 	NVIC_SetPriority(DMA_IRQn, ((0x01 << 3) | 0x01));
-	
+
 	// Setup GPDMA channel --------------------------------
 	// channel 1
 	GPDMACfg.ChannelNum = 1;
@@ -88,7 +83,6 @@ void initI2SDMARX(uint32_t rxblock) {
 	GPDMACfg.DMALLI = 0;
 	/* Setup channel with given parameter */
 	GPDMA_Setup(&GPDMACfg);
-	
 
 	/* Enable GPDMA channel 1 */
 	GPDMA_ChannelCmd(1, ENABLE);
@@ -153,14 +147,49 @@ void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_RX_MODE);
 
 	/* set clock */
-	CLKPWR_SetPCLKDiv(CLKPWR_PCLKSEL_I2S, CLKPWR_PCLKSEL_CCLK_DIV_4);
+	//CLKPWR_SetPCLKDiv(CLKPWR_PCLKSEL_I2S, CLKPWR_PCLKSEL_CCLK_DIV_2);
+	//I2S_FreqConfig(LPC_I2S, freq, I2S_TX_MODE);
+	//I2S_FreqConfig(LPC_I2S, freq, I2S_RX_MODE);
 
-	I2S_FreqConfig(LPC_I2S, freq, I2S_TX_MODE);
-	I2S_FreqConfig(LPC_I2S, freq, I2S_RX_MODE);
+
+
+	uint8_t x = 14;
+	uint8_t y = 31;
+	uint8_t divider = 2;
+
+
+	LPC_SC->PCONP |= (0x01 << 27); // turn on I2S periferal
+
+	LPC_SC->PCLKSEL1 &= (~(0x03 << 22));
+
+	if (divider == 1)
+		LPC_SC->PCLKSEL1 |= (0x01 << 22);
+	else if (divider == 2)
+		LPC_SC->PCLKSEL1 |= (0x02 << 22);
+	else if (divider == 4)
+		LPC_SC->PCLKSEL1 |= (0x00 << 22);
+	else if (divider == 8)
+		LPC_SC->PCLKSEL1 |= (0x03 << 22);
+
+	LPC_I2S->I2STXRATE = (x << 8) | y;
+	LPC_I2S->I2SRXRATE = (x << 8) | y;
+
+	uint32_t peripheralClock = SystemCoreClock / divider;
+	uint32_t masterClock = (x * peripheralClock) / (2 * y);
+
+	//16 bits samples
+	LPC_I2S->I2SDAO |= (0x01 << 4); // set to 01
+
+	uint32_t bitClock = 16 * 44100 * 2;
+	uint8_t bitDivider = masterClock / bitClock;
+
+	LPC_I2S->I2STXBITRATE = bitDivider - 1;
+	LPC_I2S->I2SRXBITRATE = bitDivider - 1;
+
 
 	initI2SDMATX(txblock);
-	initI2SDMARX(rxblock);
-	
+	//initI2SDMARX(rxblock);
+
 	I2S_Start(LPC_I2S);
 
 }

@@ -65,7 +65,7 @@ void DMA_IRQHandler(void) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 1);
 			
-			initI2SDMARX((uint32_t) txblock);
+			//initI2SDMARX((uint32_t) txblock);
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 1);
