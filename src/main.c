@@ -15,15 +15,14 @@ volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
 volatile uint32_t txblock[TRANSFER_SIZE];
 volatile uint32_t rxblock[TRANSFER_SIZE];
-volatile int16_t i = 0;
 
-int16_t LUT[] = { 0, 4771, 9440, 13908, 18080, 21866, 25187, 27970, 30157, 31702,
-		32571, 32746, 32222, 31012, 29141, 26649, 23589, 20026, 16037, 11705,
-		7124, 2391, -2391, -7124, -11705, -16037, -20026, -23589, -26649,
-		-29141, -31012, -32222, -32746, -32571, -31702, -30157, -27970, -25187,
-		-21866, -18080, -13908, -9440, -4771};
+int16_t LUT[] = { 0, 4663, 9231, 13611, 17715, 21457, 24763, 27565, 29805,
+		31439, 32433, 32767, 32433, 31439, 29805, 27565, 24763, 21457, 17715,
+		13611, 9231, 4663, 0, -4663, -9231, -13611, -17715, -21457, -24763,
+		-27565, -29805, -31439, -32433, -32767, -32433, -31439, -29805, -27565,
+		-24763, -21457, -17715, -13611, -9231, -4663 };
+
 volatile int ledvalue = 0;
-unsigned long LED_PINS = ((uint32_t) 1 << 22);
 
 void DMA_IRQHandler(void);
 
@@ -35,10 +34,10 @@ void SysTick_Handler(void) {
 		miliseconds = 0;
 
 		if (ledvalue) {
-			GPIO_SetValue(0, LED_PINS);
+			GPIO_SetValue(0, (1 << 22));
 			ledvalue = 0;
 		} else {
-			GPIO_ClearValue(0, LED_PINS);
+			GPIO_ClearValue(0, (1 << 22));
 			ledvalue = 1;
 		}
 
@@ -56,6 +55,7 @@ inline static void delay_ms(uint32_t delayTime) {
 void DMA_IRQHandler(void) {
 
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET) {
+		//term1PutText("DMA channel: TX\r\n");
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 0);
 
@@ -67,10 +67,11 @@ void DMA_IRQHandler(void) {
 	}
 
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 1) == SET) {
+		//term1PutText("DMA channel: RX\r\n");
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 1);
 
-			//initI2SDMARX((uint32_t) txblock);
+			initI2SDMARX((uint32_t) rxblock);
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 1);
@@ -79,33 +80,59 @@ void DMA_IRQHandler(void) {
 
 }
 
+void deInterleave(void* in, void* out, int len);
+
+
 int main() {
 
 	SystemInit();
 	SystemCoreClockUpdate();
-
-	//txblock init
-	int j;
-	for (j = 0; j < TRANSFER_SIZE; j++) {
-		i = LUT[j];
-		txblock[j] = ((i << 16) | i);
-	}
-
 	SysTick_Config(SystemCoreClock / 1000);
 
 	/* Enable GPIO Clock */
 	CLKPWR_ConfigPPWR(CLKPWR_PCONP_PCGPIO, ENABLE);
 	CLKPWR_ConfigPPWR(CLKPWR_PCONP_PCI2S, ENABLE);
-	GPIO_SetDir(0, LED_PINS, 1);
+
+	GPIO_SetDir(0, (1 << 22), 1);
+	GPIO_SetDir(1, (1 << 18) | (1 << 21), 1);
 
 	uart1Init();
 
+	//txblock init
+	int16_t j, i = 0;
+	for (j = 0; j < TRANSFER_SIZE; j++) {
+		i = LUT[j];
+		txblock[j] = ((i << 16) | (i & 0xffff));
+		//term1PutValue(j,0);
+		//term1PutValue(i,1);
+	}
+
+
 	initTX(44100, (uint32_t) txblock, (uint32_t) txblock);
+	term1PutText("Booted\n\r");
 
-	term1PutText("Booted, PCLK:\n\r");
-	term1PutValue(CLKPWR_GetPCLK(CLKPWR_PCLKSEL_I2S), 1);
+	GPIO_SetValue(1, (1 << 18));
+	GPIO_ClearValue(1, (1 << 21));
 
+	term1PutValue(rxblock[0], 0);
+int flag = 0;
+
+delay_ms(100);
 	while (1) {
-		;
+		/*uint32_t sample = I2S_Receive(LPC_I2S);
+		int16_t right = sample >> 16;
+		int16_t left = sample & 0xffff;
+		term1PutValue(right, 0);
+		term1PutValue(left, 1);
+		*/
+		while(flag < TRANSFER_SIZE){
+			//int left = rxblock[flag] & (0xffff);
+			int16_t right = ((int)rxblock[flag]) >> 16;
+			//term1PutValue(left, 0);
+			term1PutValue(right, 0);
+			flag++;
+		}
+
+		delay_ms(100);
 	}
 }

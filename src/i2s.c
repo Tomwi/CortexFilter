@@ -58,6 +58,9 @@ void initI2SDMARX(uint32_t rxblock) {
 
 	/* Setting GPDMA interrupt */
 	// Disable interrupt for DMA
+
+
+
 	NVIC_DisableIRQ(DMA_IRQn);
 	/* preemption = 1, sub-priority = 1 */
 	NVIC_SetPriority(DMA_IRQn, ((0x01 << 3) | 0x01));
@@ -129,11 +132,12 @@ void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 	PINSEL_ConfigPin(&PinCfg);
 
 	/* I2S init */
+
 	I2S_Init(LPC_I2S);
 
 	I2S_ConfigStruct.wordwidth = I2S_WORDWIDTH_16;
 	I2S_ConfigStruct.mono = I2S_STEREO;
-	I2S_ConfigStruct.stop = I2S_STOP_ENABLE;
+	I2S_ConfigStruct.stop = I2S_STOP_DISABLE;
 	I2S_ConfigStruct.reset = I2S_RESET_ENABLE;
 	I2S_ConfigStruct.ws_sel = I2S_MASTER_MODE;
 	I2S_ConfigStruct.mute = I2S_MUTE_DISABLE;
@@ -144,21 +148,15 @@ void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 	I2S_ClkConfig.fpin = I2S_4PIN_DISABLE;
 	I2S_ClkConfig.mcena = I2S_MCLK_ENABLE;
 	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_TX_MODE);
+
+	I2S_ClkConfig.clksel = I2S_CLKSEL_MCLK;
 	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_RX_MODE);
-
-	/* set clock */
-	//CLKPWR_SetPCLKDiv(CLKPWR_PCLKSEL_I2S, CLKPWR_PCLKSEL_CCLK_DIV_2);
-	//I2S_FreqConfig(LPC_I2S, freq, I2S_TX_MODE);
-	//I2S_FreqConfig(LPC_I2S, freq, I2S_RX_MODE);
-
-
 
 	uint8_t x = 14;
 	uint8_t y = 31;
 	uint8_t divider = 2;
 
-
-	LPC_SC->PCONP |= (0x01 << 27); // turn on I2S periferal
+	LPC_SC->PCONP |= (0x01 << 27); // turn on I2S peripheral
 
 	LPC_SC->PCLKSEL1 &= (~(0x03 << 22));
 
@@ -177,18 +175,14 @@ void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 	uint32_t peripheralClock = SystemCoreClock / divider;
 	uint32_t masterClock = (x * peripheralClock) / (2 * y);
 
-	//16 bits samples
-	LPC_I2S->I2SDAO |= (0x01 << 4); // set to 01
-
 	uint32_t bitClock = 16 * 44100 * 2;
 	uint8_t bitDivider = masterClock / bitClock;
 
 	LPC_I2S->I2STXBITRATE = bitDivider - 1;
 	LPC_I2S->I2SRXBITRATE = bitDivider - 1;
 
-
-	initI2SDMATX(txblock);
-	//initI2SDMARX(rxblock);
+	//initI2SDMATX(txblock);
+	initI2SDMARX(rxblock);
 
 	I2S_Start(LPC_I2S);
 
