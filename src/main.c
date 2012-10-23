@@ -15,7 +15,13 @@ volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
 volatile uint32_t txblock[TRANSFER_SIZE];
 volatile uint32_t rxblock[TRANSFER_SIZE];
-volatile uint16_t i = 0;
+volatile int16_t i = 0;
+
+int16_t LUT[] = { 0, 4663, 9231, 13612, 17715, 21458, 24764, 27566, 29806,
+		31440, 32434, 32768, 32434, 31440, 29806, 27566, 24764, 21458, 17715,
+		13612, 9231, 4663, 0, -4663, -9231, -13612, -17715, -21458, -24764,
+		-27566, -29806, -31440, -32434, -32768, -32434, -31440, -29806, -27566,
+		-24764, -21458, -17715, -13612, -9231, -4663 };
 
 volatile int ledvalue = 0;
 unsigned long LED_PINS = ((uint32_t) 1 << 22);
@@ -53,33 +59,24 @@ void DMA_IRQHandler(void) {
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 0);
-			
+
 			initI2SDMATX((uint32_t) txblock);
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 0) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 0);
 		}
 	}
-	
+
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 1) == SET) {
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 1);
-			
+
 			//initI2SDMARX((uint32_t) txblock);
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 1);
 		}
 	}
-
-	//txblock init
-	int j;
-	for (j = 0; j < TRANSFER_SIZE; j++) {
-		txblock[j] = ((i << 16) | i);
-		i++;
-	}
-
-	
 
 }
 
@@ -91,8 +88,8 @@ int main() {
 	//txblock init
 	int j;
 	for (j = 0; j < TRANSFER_SIZE; j++) {
-		txblock[i] = ((i << 16) | i);
-		i++;
+		i = LUT[j];
+		txblock[j] = ((i << 16) | i);
 	}
 
 	SysTick_Config(SystemCoreClock / 1000);
@@ -107,11 +104,9 @@ int main() {
 	initTX(44100, (uint32_t) txblock, (uint32_t) txblock);
 
 	term1PutText("Booted, PCLK:\n\r");
-	term1PutValue(CLKPWR_GetPCLK(CLKPWR_PCLKSEL_I2S),1);
+	term1PutValue(CLKPWR_GetPCLK(CLKPWR_PCLKSEL_I2S), 1);
 
 	while (1) {
-
-		//TransmitValue((123)|((123)<<16));
-
+		;
 	}
 }
