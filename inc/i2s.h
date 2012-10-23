@@ -7,7 +7,7 @@
 #include "lpc_types.h"
 #include "lpc17xx_gpdma.h"
 
-#define TRANSFER_SIZE (44)
+#define TRANSFER_SIZE (43)
 
 
 
