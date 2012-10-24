@@ -18,23 +18,25 @@
 #define MAX_FLT_LEN     128
 // buffer to hold all of the input samples
 #define BUFFER_LEN      (MAX_FLT_LEN - 1 + MAX_INPUT_LEN)
-#define FILTER_LEN  64
+#define FILTER_LEN  100
 
 // array to hold input samples
 int16_t insampL[BUFFER_LEN];
 int16_t insampR[BUFFER_LEN];
-int16_t coeffs[FILTER_LEN] = { 30, 34, 40, 48, 60, 75, 93, 116, 142, 173, 207,
-		246, 288, 334, 383, 435, 488, 544, 600, 656, 712, 767, 820, 870, 916,
-		958, 996, 1028, 1054, 1074, 1088, 1095, 1095, 1088, 1074, 1054, 1028,
-		996, 958, 916, 870, 820, 767, 712, 656, 600, 544, 488, 435, 383, 334,
-		288, 246, 207, 173, 142, 116, 93, 75, 60, 48, 40, 34, 30 };
+int16_t coeffs[FILTER_LEN] = { -15, -14, -12, -9, -6, -2, 3, 10, 18, 27, 37, 47,
+		56, 65, 70, 73, 71, 63, 50, 29, 3, -30, -68, -111, -156, -201, -243,
+		-279, -305, -318, -315, -293, -249, -182, -90, 25, 164, 326, 505, 700,
+		904, 1112, 1318, 1516, 1701, 1865, 2003, 2111, 2185, 2223, 2223, 2185,
+		2111, 2003, 1865, 1701, 1516, 1318, 1112, 904, 700, 505, 326, 164, 25,
+		-90, -182, -249, -293, -315, -318, -305, -279, -243, -201, -156, -111,
+		-68, -30, 3, 29, 50, 63, 71, 73, 70, 65, 56, 47, 37, 27, 18, 10, 3, -2,
+		-6, -9, -12, -14, -15 };
 
 volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
 
 volatile uint32_t txBlock1[TRANSFER_SIZE];
 volatile uint32_t rxBlock1[TRANSFER_SIZE];
-
 volatile uint32_t txBlock2[TRANSFER_SIZE];
 volatile uint32_t rxBlock2[TRANSFER_SIZE];
 
@@ -233,6 +235,7 @@ int main() {
 	while (1) {
 		if (needsProcessing) {
 			GPIO_SetValue(0, (1 << 22));
+
 			if (currentBuffer == 1) {
 				currentBuffer = 2;
 
