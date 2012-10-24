@@ -11,6 +11,24 @@
 #include "terminal.h"
 #include "i2s.h"
 
+// maximum number of inputs that can be handled
+// in one function call
+#define MAX_INPUT_LEN   TRANSFER_SIZE
+// maximum length of filter than can be handled
+#define MAX_FLT_LEN     128
+// buffer to hold all of the input samples
+#define BUFFER_LEN      (MAX_FLT_LEN - 1 + MAX_INPUT_LEN)
+#define FILTER_LEN  64
+
+// array to hold input samples
+int16_t insampL[BUFFER_LEN];
+int16_t insampR[BUFFER_LEN];
+int16_t coeffs[FILTER_LEN] = { 30, 34, 40, 48, 60, 75, 93, 116, 142, 173, 207,
+		246, 288, 334, 383, 435, 488, 544, 600, 656, 712, 767, 820, 870, 916,
+		958, 996, 1028, 1054, 1074, 1088, 1095, 1095, 1088, 1074, 1054, 1028,
+		996, 958, 916, 870, 820, 767, 712, 656, 600, 544, 488, 435, 383, 334,
+		288, 246, 207, 173, 142, 116, 93, 75, 60, 48, 40, 34, 30 };
+
 volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
 
@@ -31,23 +49,95 @@ volatile int ledvalue = 0;
 
 void DMA_IRQHandler(void);
 
+// FIR init
+void firFixedLInit(void) {
+	memset(insampL, 0, sizeof(insampL));
+}
+
+// the FIR filter function
+void firFixedL(int16_t *coeffs, int16_t *input, int16_t *output, int length,
+		int filterLength) {
+	int32_t acc; // accumulator for MACs
+	int16_t *coeffp; // pointer to coefficients
+	int16_t *inputp; // pointer to input samples
+	int n;
+	int k;
+
+	// put the new samples at the high end of the buffer
+	memcpy(&insampL[filterLength - 1], input, length * sizeof(int16_t));
+
+	// apply the filter to each input sample
+	for (n = 0; n < length; n++) {
+		// calculate output n
+		coeffp = coeffs;
+		inputp = &insampL[filterLength - 1 + n];
+		// load rounding constant
+		acc = 1 << 14;
+		// perform the multiply-accumulate
+		for (k = 0; k < filterLength; k++) {
+			acc += (int32_t)(*coeffp++) * (int32_t)(*inputp--);
+		}
+		// saturate the result
+		if (acc > 0x3fffffff) {
+			acc = 0x3fffffff;
+		} else if (acc < -0x40000000) {
+			acc = -0x40000000;
+		}
+		// convert from Q30 to Q15
+		output[n] = (int16_t)(acc >> 15);
+	}
+
+	// shift input samples back in time for next time
+	memmove(&insampL[0], &insampL[length],
+			(filterLength - 1) * sizeof(int16_t));
+}
+
+// FIR init
+void firFixedRInit(void) {
+	memset(insampR, 0, sizeof(insampR));
+}
+
+// the FIR filter function
+void firFixedR(int16_t *coeffs, int16_t *input, int16_t *output, int length,
+		int filterLength) {
+	int32_t acc; // accumulator for MACs
+	int16_t *coeffp; // pointer to coefficients
+	int16_t *inputp; // pointer to input samples
+	int n;
+	int k;
+
+	// put the new samples at the high end of the buffer
+	memcpy(&insampR[filterLength - 1], input, length * sizeof(int16_t));
+
+	// apply the filter to each input sample
+	for (n = 0; n < length; n++) {
+		// calculate output n
+		coeffp = coeffs;
+		inputp = &insampR[filterLength - 1 + n];
+		// load rounding constant
+		acc = 1 << 14;
+		// perform the multiply-accumulate
+		for (k = 0; k < filterLength; k++) {
+			acc += (int32_t)(*coeffp++) * (int32_t)(*inputp--);
+		}
+		// saturate the result
+		if (acc > 0x3fffffff) {
+			acc = 0x3fffffff;
+		} else if (acc < -0x40000000) {
+			acc = -0x40000000;
+		}
+		// convert from Q30 to Q15
+		output[n] = (int16_t)(acc >> 15);
+	}
+
+	// shift input samples back in time for next time
+	memmove(&insampR[0], &insampR[length],
+			(filterLength - 1) * sizeof(int16_t));
+}
+
 void SysTick_Handler(void) {
 	SysTickCount++; // increment the SysTick counter
 	miliseconds++;
-
-	/*
-	 if (miliseconds >= 500) {
-	 miliseconds = 0;
-
-	 if (ledvalue) {
-	 GPIO_SetValue(0, (1 << 22));
-	 ledvalue = 0;
-	 } else {
-	 GPIO_ClearValue(0, (1 << 22));
-	 ledvalue = 1;
-	 }
-	 }
-	 */
 }
 
 inline static void delay_ms(uint32_t delayTime) {
@@ -73,6 +163,8 @@ void DMA_IRQHandler(void) {
 				rxReady = 0;
 				initI2SDMA((uint32_t) txActive, (uint32_t) rxActive);
 
+				if (needsProcessing)
+					term1PutText("Too late :(\r\n");
 				needsProcessing = 1;
 
 			}
@@ -93,6 +185,9 @@ void DMA_IRQHandler(void) {
 				txReady = 0;
 				rxReady = 0;
 				initI2SDMA((uint32_t) txActive, (uint32_t) rxActive);
+
+				if (needsProcessing)
+					term1PutText("Too late :(\r\n");
 
 				needsProcessing = 1;
 			}
@@ -120,6 +215,9 @@ int main() {
 	GPIO_SetDir(1, (1 << 18) | (1 << 21), 1);
 
 	uart1Init();
+
+	firFixedLInit();
+	firFixedRInit();
 
 	rxReady = 0;
 	rxReady = 0;
@@ -149,11 +247,20 @@ int main() {
 
 			uint32_t i;
 
+			int16_t left[TRANSFER_SIZE];
+			int16_t right[TRANSFER_SIZE];
+
 			for (i = 0; i < TRANSFER_SIZE; i++) {
-				txActive[i] = rxActive[i];
+				left[i] = rxActive[i] & (0xffff);
+				right[i] = ((int) rxActive[i]) >> 16;
 			}
 
-			//term1PutValue( (uint16_t)( rxActive[0] & 0xffff), 1);
+			firFixedL(coeffs, left, left, TRANSFER_SIZE, FILTER_LEN);
+			firFixedR(coeffs, right, right, TRANSFER_SIZE, FILTER_LEN);
+
+			for (i = 0; i < TRANSFER_SIZE; i++) {
+				txActive[i] = ((right[i] << 16) | (left[i] & 0xffff));
+			}
 
 			needsProcessing = 0;
 			GPIO_ClearValue(0, (1 << 22));
