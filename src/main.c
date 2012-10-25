@@ -20,17 +20,20 @@
 #define BUFFER_LEN      (MAX_FLT_LEN - 1 + MAX_INPUT_LEN)
 #define FILTER_LEN  100
 
+#define FILTERED 100
+#define ORIGINAL 50
+
 // array to hold input samples
 int16_t insampL[BUFFER_LEN];
 int16_t insampR[BUFFER_LEN];
-int16_t coeffs[FILTER_LEN] = { -15, -14, -12, -9, -6, -2, 3, 10, 18, 27, 37, 47,
-		56, 65, 70, 73, 71, 63, 50, 29, 3, -30, -68, -111, -156, -201, -243,
-		-279, -305, -318, -315, -293, -249, -182, -90, 25, 164, 326, 505, 700,
-		904, 1112, 1318, 1516, 1701, 1865, 2003, 2111, 2185, 2223, 2223, 2185,
-		2111, 2003, 1865, 1701, 1516, 1318, 1112, 904, 700, 505, 326, 164, 25,
-		-90, -182, -249, -293, -315, -318, -305, -279, -243, -201, -156, -111,
-		-68, -30, 3, 29, 50, 63, 71, 73, 70, 65, 56, 47, 37, 27, 18, 10, 3, -2,
-		-6, -9, -12, -14, -15 };
+int16_t coeffs[FILTER_LEN] = { 11, 10, 8, 6, 4, 1, -2, -6, -12, -19, -27, -36,
+		-46, -57, -68, -80, -92, -102, -112, -119, -124, -125, -121, -113, -99,
+		-79, -52, -17, 24, 73, 130, 195, 267, 344, 428, 516, 608, 701, 796, 890,
+		982, 1070, 1153, 1229, 1297, 1356, 1404, 1441, 1467, 1479, 1479, 1467,
+		1441, 1404, 1356, 1297, 1229, 1153, 1070, 982, 890, 796, 701, 608, 516,
+		428, 344, 267, 195, 130, 73, 24, -17, -52, -79, -99, -113, -121, -125,
+		-124, -119, -112, -102, -92, -80, -68, -57, -46, -36, -27, -19, -12, -6,
+		-2, 1, 4, 6, 8, 10, 11 };
 
 volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
@@ -86,7 +89,8 @@ void firFixedL(int16_t *coeffs, int16_t *input, int16_t *output, int length,
 			acc = -0x40000000;
 		}
 		// convert from Q30 to Q15
-		output[n] = (int16_t)(acc >> 15);
+		output[n] = (output[n] * ORIGINAL) / 100
+				+ ((int16_t)(acc >> 15) * FILTERED) / 100;
 	}
 
 	// shift input samples back in time for next time
@@ -129,7 +133,8 @@ void firFixedR(int16_t *coeffs, int16_t *input, int16_t *output, int length,
 			acc = -0x40000000;
 		}
 		// convert from Q30 to Q15
-		output[n] = (int16_t)(acc >> 15);
+		output[n] = (output[n] * ORIGINAL) / 100
+				+ ((int16_t)(acc >> 15) * FILTERED) / 100;
 	}
 
 	// shift input samples back in time for next time
