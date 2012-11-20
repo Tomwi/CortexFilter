@@ -15,17 +15,7 @@
 // maximum number of inputs that can be handled
 // in one function call
 #define MAX_INPUT_LEN   TRANSFER_SIZE
-// maximum length of filter than can be handled
-#define MAX_FLT_LEN     128
-// buffer to hold all of the input samples
-#define BUFFER_LEN      (MAX_FLT_LEN - 1 + MAX_INPUT_LEN)
-#define FILTER_LEN  100
 
-#define FILTERED 100
-#define ORIGINAL 50
-
-// array to hold input samples
-int16_t insamp[BUFFER_LEN];
 
 volatile uint32_t SysTickCount;
 volatile uint32_t miliseconds = 0;
@@ -40,6 +30,10 @@ volatile uint8_t txReady = 0, rxReady = 0;
 volatile uint32_t *txActive, *rxActive, *processActive;
 
 volatile int ledvalue = 0;
+
+volatile int allowed = 1;
+
+void DMA_IRQHandler(void);
 
 
 void DMA_IRQHandler(void) {
@@ -57,8 +51,12 @@ void DMA_IRQHandler(void) {
 				rxReady = 0;
 				initI2SDMA((uint32_t) txActive, (uint32_t) rxActive);
 
-				if (needsProcessing)
-					term1PutText("Too late :(\r\n");
+				if (needsProcessing) {
+					if (allowed) {
+						term1PutText(":(\r\n");
+						allowed = 0;
+					}
+				}
 				needsProcessing = 1;
 
 			}
@@ -80,9 +78,12 @@ void DMA_IRQHandler(void) {
 				rxReady = 0;
 				initI2SDMA((uint32_t) txActive, (uint32_t) rxActive);
 
-				if (needsProcessing)
-					term1PutText("Too late :(\r\n");
-
+				if (needsProcessing) {
+					if (allowed) {
+						term1PutText(":(\r\n");
+						allowed = 0;
+					}
+				}
 				needsProcessing = 1;
 			}
 		}
@@ -105,8 +106,6 @@ int main() {
 
 	uart1Init();
 
-	firFixedInit();
-
 	processActive = buffer3;
 	rxActive = buffer1;
 	txActive = buffer2;
@@ -118,11 +117,22 @@ int main() {
 	GPIO_SetValue(1, (1 << 18));
 	GPIO_ClearValue(1, (1 << 21));
 
+	int j = 0;
+
 	while (1) {
 		if (needsProcessing) {
+
+			if (allowed == 0)
+				j = 0;
+
+			if (j > 256)
+				allowed = 1;
+			else
+				j++;
+
 			GPIO_SetValue(0, (1 << 22));
 
-			firFilter(processActive, processActive, TRANSFER_SIZE);
+			//firFixed(coeffs, processActive, processActive, TRANSFER_SIZE);
 
 			//rotate buffers
 			volatile uint32_t *tmp = processActive;
