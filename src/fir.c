@@ -1,7 +1,8 @@
 #include "fir.h"
 
-#define FILTER_LEN 128
 
+//Array with filter coefficients
+#define FILTER_LEN 128
 static int16_t coeffs[FILTER_LEN] =
 		{ -2, 0, 0, 2, 4, 7, 9, 12, 15, 19, 22, 25, 28, 31, 33, 34, 34, 33, 30,
 				25, 19, 11, 0, -11, -26, -42, -60, -79, -99, -119, -138, -156,
@@ -14,12 +15,16 @@ static int16_t coeffs[FILTER_LEN] =
 				-79, -60, -42, -26, -11, 0, 11, 19, 25, 30, 33, 34, 34, 33, 31,
 				28, 25, 22, 19, 15, 12, 9, 7, 4, 2, 0, 0, -2 };
 
+//Array to store last input values
 static int16_t circBuf[FILTER_LEN];
+//Variable to remember position in the circular buffer.
 static int pos;
 
 void firFixed(uint32_t* in, int len) {
 	int i;
 	for (i = 0; i < len; i++) {
+
+		//Take one sample and put it in the circular buffer
 		circBuf[pos] = (int16_t)(in[i] & 0xffff);
 		int j, mac = (1 << 14);
 		int16_t* coeff = coeffs;
