@@ -1,6 +1,8 @@
 #include "fir.h"
 
-int16_t coeffs[FILTER_LEN] =
+#define FILTER_LEN 128
+
+static int16_t coeffs[FILTER_LEN] =
 		{ -2, 0, 0, 2, 4, 7, 9, 12, 15, 19, 22, 25, 28, 31, 33, 34, 34, 33, 30,
 				25, 19, 11, 0, -11, -26, -42, -60, -79, -99, -119, -138, -156,
 				-172, -185, -195, -200, -199, -192, -178, -156, -126, -88, -40,
@@ -12,9 +14,10 @@ int16_t coeffs[FILTER_LEN] =
 				-79, -60, -42, -26, -11, 0, 11, 19, 25, 30, 33, 34, 34, 33, 31,
 				28, 25, 22, 19, 15, 12, 9, 7, 4, 2, 0, 0, -2 };
 
-int16_t circBuf[FILTER_LEN];
-int pos;
-void firFixed(int16_t* coeff, int32_t* in, int32_t* out, int len) {
+static int16_t circBuf[FILTER_LEN];
+static int pos;
+
+void firFixed(uint32_t* in, int len) {
 	int i;
 	for (i = 0; i < len; i++) {
 		circBuf[pos] = (int16_t)(in[i] & 0xffff);
@@ -34,12 +37,11 @@ void firFixed(int16_t* coeff, int32_t* in, int32_t* out, int len) {
 		}
 		/* convert from Q30 to Q15, this mixing with the original signal isn't that
 		 * safe */
-		out[i] = (int16_t)(mac >> 15);
+		in[i] = (int16_t)(mac >> 15);
 
 		pos++;
-		pos %= FILTER_LEN;
-		if (pos > FILTER_LEN)
-			printf("error");
+		if (pos >= FILTER_LEN)
+			pos = 0;
 
 	}
 }

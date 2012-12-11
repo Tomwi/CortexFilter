@@ -65,6 +65,7 @@ void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
 	NVIC_EnableIRQ(DMA_IRQn);
 
 
+	//Setup DMA
 	I2SDMACfg.DMAIndex = I2S_DMA_1;
 	I2SDMACfg.depth = 4;
 	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_TX_MODE);
@@ -73,6 +74,8 @@ void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
 	I2SDMACfg.depth = 8;
 	I2S_DMAConfig(LPC_I2S, &I2SDMACfg, I2S_RX_MODE);
 
+
+	//Enable DMA
 	I2S_DMACmd(LPC_I2S, I2S_DMA_1, I2S_TX_MODE, ENABLE);
 	I2S_DMACmd(LPC_I2S, I2S_DMA_2, I2S_RX_MODE, ENABLE);
 
@@ -80,6 +83,7 @@ void initI2SDMA(uint32_t txblock, uint32_t rxblock) {
 
 void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 
+	//Set I2S pins
 	PINSEL_CFG_Type PinCfg;
 	I2S_CFG_Type I2S_ConfigStruct;
 	I2S_MODEConf_Type I2S_ClkConfig;
@@ -132,6 +136,8 @@ void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 	I2S_ClkConfig.clksel = I2S_CLKSEL_MCLK;
 	I2S_ModeConfig(LPC_I2S, &I2S_ClkConfig, I2S_RX_MODE);
 
+
+	//Setup I2S clocks
 	uint8_t x = 14;
 	uint8_t y = 31;
 	uint8_t divider = 2;
@@ -167,6 +173,3 @@ void initTX(unsigned int freq, uint32_t txblock, uint32_t rxblock) {
 
 }
 
-void TransmitValue(unsigned int val) {
-	I2S_Send(LPC_I2S, val);
-}

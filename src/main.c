@@ -2,88 +2,71 @@
 #include "system_LPC17xx.h"
 #include "lpc17xx_gpio.h"
 #include "lpc17xx_clkpwr.h"
-#include "lpc17xx_systick.h"
 #include "lpc17xx_pinsel.h"
-#include "lpc17xx_gpdma.h"
-#include "lpc17xx_libcfg_default.h"
-#include "lpc17xx_nvic.h"
 
-#include "terminal.h"
 #include "i2s.h"
 #include "fir.h"
 
-// maximum number of inputs that can be handled
-// in one function call
-#define MAX_INPUT_LEN   TRANSFER_SIZE
+//Transfer buffer
+uint32_t buffer1[TRANSFER_SIZE];
+uint32_t buffer2[TRANSFER_SIZE];
+uint32_t buffer3[TRANSFER_SIZE];
 
-
-volatile uint32_t SysTickCount;
-volatile uint32_t miliseconds = 0;
-
-volatile uint32_t buffer1[TRANSFER_SIZE];
-volatile uint32_t buffer2[TRANSFER_SIZE];
-volatile uint32_t buffer3[TRANSFER_SIZE];
-
+//Flag to indicate that processing is necessary
 volatile uint8_t needsProcessing = 0;
 
+//Flags to indicate that transmitting or receiving is finished
 volatile uint8_t txReady = 0, rxReady = 0;
-volatile uint32_t *txActive, *rxActive, *processActive;
 
-volatile int ledvalue = 0;
+//Pointers to active buffers
+uint32_t *txActive, *rxActive, *processActive;
 
-volatile int allowed = 1;
-
-void DMA_IRQHandler(void);
-
-
+//Interrupt that is triggered when the the DMA is finished
 void DMA_IRQHandler(void) {
+	//Check which channel triggered the interrupt
 
+	//Transmit
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 0) == SET) {
-		//term1PutText("DMA channel: TX\r\n");
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 0) == SET) {
+			//Clear interrupt flag
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 0);
 
+			//Set transit ready flag
 			txReady = 1;
-			rxReady = 1;
 
+			//If both transmit and receive are finished
 			if (txReady && rxReady) {
+				//Clear flags
 				txReady = 0;
 				rxReady = 0;
+				//Restart DMA
 				initI2SDMA((uint32_t) txActive, (uint32_t) rxActive);
 
-				if (needsProcessing) {
-					if (allowed) {
-						term1PutText(":(\r\n");
-						allowed = 0;
-					}
-				}
+				//Set flag for processing in main loop
 				needsProcessing = 1;
-
 			}
 		}
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTERR, 0) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTERR, 0);
 		}
 	}
-
+	//Receive
 	if (GPDMA_IntGetStatus(GPDMA_STAT_INT, 1) == SET) {
-		//term1PutText("DMA channel: RX\r\n");
 		if (GPDMA_IntGetStatus(GPDMA_STAT_INTTC, 1) == SET) {
 			GPDMA_ClearIntPending(GPDMA_STATCLR_INTTC, 1);
 
+			//Set receive flag
 			rxReady = 1;
 
+			//If both transmit and receive are finished
 			if (txReady && rxReady) {
+				//Clear flags
 				txReady = 0;
 				rxReady = 0;
+				//Restart DMA
 				initI2SDMA((uint32_t) txActive, (uint32_t) rxActive);
 
-				if (needsProcessing) {
-					if (allowed) {
-						term1PutText(":(\r\n");
-						allowed = 0;
-					}
-				}
+				//Set flag for processing in main loop
 				needsProcessing = 1;
 			}
 		}
@@ -95,52 +78,51 @@ void DMA_IRQHandler(void) {
 }
 
 int main() {
+	//Initialize system and clocks
 	SystemInit();
 	SystemCoreClockUpdate();
 
+	//Turn on peripheral clocks for GPIO and I2S
 	CLKPWR_ConfigPPWR(CLKPWR_PCONP_PCGPIO, ENABLE);
 	CLKPWR_ConfigPPWR(CLKPWR_PCONP_PCI2S, ENABLE);
 
+	//Set direction for LED pin
 	GPIO_SetDir(0, (1 << 22), 1);
+	//Set direction for ADC control pins
 	GPIO_SetDir(1, (1 << 18) | (1 << 21), 1);
 
-	uart1Init();
-
+	//Initialize buffer pointers to default value
 	processActive = buffer3;
 	rxActive = buffer1;
 	txActive = buffer2;
 
+	//Init the I2S hardware
 	initTX(44100, (uint32_t) txActive, (uint32_t) rxActive);
 
-	term1PutText("Booted\n\r");
-
+	//Set and Clear control pins for ADC
 	GPIO_SetValue(1, (1 << 18));
 	GPIO_ClearValue(1, (1 << 21));
 
-	int j = 0;
-
+	//infinite loop
 	while (1) {
+		//If the interrupt has set the flag
 		if (needsProcessing) {
-
-			if (allowed == 0)
-				j = 0;
-
-			if (j > 256)
-				allowed = 1;
-			else
-				j++;
-
+			//Turn led on to indicate CPU usage
 			GPIO_SetValue(0, (1 << 22));
 
-			//firFixed(coeffs, processActive, processActive, TRANSFER_SIZE);
+			//Run filter on current buffers
+			firFixed(processActive, TRANSFER_SIZE);
 
-			//rotate buffers
-			volatile uint32_t *tmp = processActive;
+			//Rotate buffers
+			uint32_t *tmp = processActive;
 			processActive = rxActive;
 			rxActive = txActive;
 			txActive = tmp;
 
+			//Clear flag
 			needsProcessing = 0;
+
+			//Turn led off, if the processing takes longer the LED becomes brighter
 			GPIO_ClearValue(0, (1 << 22));
 		}
 	}
